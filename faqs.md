@@ -1,4 +1,24 @@
 # Frequently Asked Questions
+#### Installing MCAPL with Durative Actions with Failure Detection
+0. Ensure the `dev` branch is selected from the branch menu dropdown list.
+
+1. Clone the git repository: `git clone https://github.com/peterstringer/mcapl.git`
+
+2. Create a file `.jpf/site.properties` in your home directory with the path to mcapl assigned to the value mcapl (e.g. `mcapl = ${user.home}/Eclipse/mcapl`).
+ 
+3. Within the mcapl directory you should find `build.xml` to which you can apply ant to build ajpf. (e.g., at the command line, ant compile to just compile the files and ant build to build and run regression tests (takes just under fifteen minutes on a 3GHz Macbook with 16 GB memory)).
+
+- Make sure you have the bin sub-directory of mcapl on your java class path.
+- We recommend you set the `AJPF_HOME` environment variable to give the path to your mcapl directory.
+
+#### Running the `waypoints.ail` example from EMAS 2021 submission
+1. Navigate to the `src/examples/gwendolen/failuredetection/intentionsuspension/Waypoints.ail` file in your project explorer.
+2. Open the file and ensure it is the currently active tab.
+3. Select the `run-AIL` run configuration.
+4. Run the selected configuration.
+
+* If installation has not completed successfully, the required run configuration will not be available.
+
 ### Overview
 ##### Contributions
 AREA 2020 Position Paper: Literature Review, System Architecture, Action Failure Monitoring algorithm. 
