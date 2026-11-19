@@ -41,6 +41,7 @@ import ail.syntax.Guard;
 import ail.syntax.Plan;
 import ail.syntax.PlanLibrary;
 import ail.syntax.Predicate;
+import gov.nasa.jpf.annotation.FilterField;
 
 /**
  * The state an agent needs to monitor its actions, detect deprecated actions, learn new
@@ -66,6 +67,9 @@ public class AdaptiveState {
 	private final ArrayList<ArrayList<Guard>> originalContexts = new ArrayList<ArrayList<Guard>>();
 
 	private StripsPlanner planner = new StripsPlanner();
+
+	@FilterField
+	private final ArrayList<AdaptiveListener> listeners = new ArrayList<AdaptiveListener>();
 
 	/**
 	 * An action that has reached its failure threshold and is awaiting a new description
@@ -114,6 +118,19 @@ public class AdaptiveState {
 		public void setLearned(DurativeAction d) {
 			learned = d;
 		}
+	}
+
+	public void addListener(AdaptiveListener l) {
+		listeners.add(l);
+	}
+
+	public void removeListener(AdaptiveListener l) {
+		listeners.remove(l);
+	}
+
+	/** The listeners to notify of changes. */
+	public List<AdaptiveListener> getListeners() {
+		return Collections.unmodifiableList(listeners);
 	}
 
 	public ActionLog getActionLog() {

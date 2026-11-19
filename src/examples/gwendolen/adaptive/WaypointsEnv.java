@@ -84,8 +84,25 @@ public class WaypointsEnv extends DefaultEnvironment {
 	 * @param to
 	 * @param actual
 	 */
-	public void setFault(String from, String to, String actual) {
+	public synchronized void setFault(String from, String to, String actual) {
 		faults.put("move(" + from + "," + to + ")", actual);
+	}
+
+	/**
+	 * Make move(From, To) work again.
+	 * @param from
+	 * @param to
+	 */
+	public synchronized void clearFault(String from, String to) {
+		faults.remove("move(" + from + "," + to + ")");
+	}
+
+	/**
+	 * The configured faults, from the printed action to where it actually leads.
+	 * @return
+	 */
+	public synchronized TreeMap<String, String> getFaults() {
+		return new TreeMap<String, String>(faults);
 	}
 
 	/*
@@ -97,12 +114,14 @@ public class WaypointsEnv extends DefaultEnvironment {
 		if (act.getFunctor().equals("move") && act.getTermsSize() == 2) {
 			String from = act.getTerm(0).toString();
 			String to = act.getTerm(1).toString();
-			if (from.equals(location)) {
-				String dest = faults.containsKey(new Predicate(act).toString()) ? faults.get(new Predicate(act).toString()) : to;
-				removePercept(at(location));
-				location = dest;
-				addPercept(at(location));
-				journey.add(location);
+			synchronized (this) {
+				if (from.equals(location)) {
+					String dest = faults.containsKey(new Predicate(act).toString()) ? faults.get(new Predicate(act).toString()) : to;
+					removePercept(at(location));
+					location = dest;
+					addPercept(at(location));
+					journey.add(location);
+				}
 			}
 			AJPFLogger.info(logname, agName + " " + act + " -> at(" + location + ")");
 		}
@@ -119,11 +138,11 @@ public class WaypointsEnv extends DefaultEnvironment {
 	 * The waypoints the rover has been at, in order.
 	 * @return
 	 */
-	public List<String> getJourney() {
-		return Collections.unmodifiableList(journey);
+	public synchronized List<String> getJourney() {
+		return Collections.unmodifiableList(new ArrayList<String>(journey));
 	}
 
-	public String getLocation() {
+	public synchronized String getLocation() {
 		return location;
 	}
 }

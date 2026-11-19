@@ -24,6 +24,23 @@ java ail.mas.AIL src/examples/gwendolen/adaptive/inspection.ail
 `log.info = ail.semantics.adaptive` logs the action log, deprecations, learned descriptions and
 plan patches.
 
+## Live visual demo
+
+`demo/` runs the scenarios on the interpreter and streams them to a web page over a WebSocket:
+
+```
+ant compile
+java -cp "bin:lib/3rdparty/*" gwendolen.adaptive.demo.DemoServer   # then open http://localhost:8090
+```
+
+Use JDK 11 or later. The page shows the map with the robot moving, the adaptation loop of Figure 4.2,
+the action log (Figures 5.1–5.4), the candidate post-conditions and their scores (Figure 6.3),
+and the plan and capability libraries as they change. *Break an action* changes what an action does
+in the environment while the agent is running, without telling the agent, so you can watch it
+detect the change, learn, and patch its plans. The server listens on localhost only, uses only the
+JDK (`demo/WebSocketServer.java`), and the agent reports its reasoning through
+`ail.semantics.adaptive.AdaptiveListener`.
+
 ## Describing actions
 
 Actions are described in a `:Capabilities:` section between `:Initial Beliefs:` (or

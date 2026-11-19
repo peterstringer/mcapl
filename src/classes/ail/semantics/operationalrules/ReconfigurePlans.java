@@ -27,6 +27,7 @@ import java.util.List;
 
 import ail.semantics.AILAgent;
 import ail.semantics.OSRule;
+import ail.semantics.adaptive.AdaptiveListener;
 import ail.semantics.adaptive.AdaptiveReasoning;
 import ail.semantics.adaptive.AdaptiveState;
 import ail.syntax.Action;
@@ -82,17 +83,25 @@ public class ReconfigurePlans implements OSRule {
 		Predicate action = d.getAction();
 
 		List<Predicate> patch = AdaptiveReasoning.findPatch(a, d.getDescription());
+		int n = 0;
 		if (patch != null) {
 			s.setPatch(action, patch);
-			int n = s.reconfigure(a.getPL());
+			n = s.reconfigure(a.getPL());
 			AJPFLogger.info(AdaptiveReasoning.logname, a.getAgName() + " patched " + n + " plan(s): " + action + " -> " + patch);
 		} else {
 			AJPFLogger.warning(AdaptiveReasoning.logname, a.getAgName() + " found no patch for " + action + "; plans containing it are unchanged");
 		}
 
+		for (AdaptiveListener l: s.getListeners()) {
+			l.plansReconfigured(a, action, patch, n);
+		}
+
 		Intention i = AdaptiveReasoning.findIntention(a, d.getIntentionID());
 		if (i != null && ! i.empty() && executes(i, action)) {
 			List<Predicate> repair = AdaptiveReasoning.planFromBeliefs(a, d.getDescription());
+			for (AdaptiveListener l: s.getListeners()) {
+				l.intentionRepaired(a, action, repair);
+			}
 			if (repair != null) {
 				AJPFLogger.info(AdaptiveReasoning.logname, a.getAgName() + " continues with " + repair + " in place of " + action);
 				AdaptiveReasoning.replaceTopDeed(a, i, repair);

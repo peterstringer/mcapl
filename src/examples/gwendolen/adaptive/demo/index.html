@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adaptive Gwendolen Live</title>
+<style>
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1f24; --muted: #6b6f78; --line: #e3e1da; --soft: #f0eee8;
+  --accent: #3b5bdb; --success: #2f9e44; --success-bg: #e6f4ea; --failure: #1c7ed6; --failure-bg: #e3f0fc;
+  --abort: #e03131; --abort-bg: #fdeaea; --learn: #7048e8; --learn-bg: #efeafd; --patch: #e8590c; --patch-bg: #fdefe6;
+  --fault: #e03131; --robot: #1d1f24; --node: #ffffff; --edge: #c9c6bd; --route: #3b5bdb;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171c; --panel: #1d2026; --ink: #e8e9ec; --muted: #9aa0ab; --line: #2e323a; --soft: #252930;
+    --accent: #7c95ff; --success: #51cf66; --success-bg: #1f3326; --failure: #4dabf7; --failure-bg: #1b2c3d;
+    --abort: #ff6b6b; --abort-bg: #3a2020; --learn: #a48bff; --learn-bg: #2a2440; --patch: #ff922b; --patch-bg: #3a2a1c;
+    --fault: #ff6b6b; --robot: #e8e9ec; --node: #252930; --edge: #474c56; --route: #7c95ff;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+header h1 small { color: var(--muted); font-weight: 450; margin-left: 6px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select, button, input[type=range] { font: inherit; }
+select, button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 6px 10px; }
+button { cursor: pointer; font-weight: 550; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:disabled { opacity: .45; cursor: default; }
+label.inline { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13px; }
+.conn { margin-left: auto; font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--abort); }
+.dot.on { background: var(--success); }
+main { display: grid; grid-template-columns: minmax(340px, 1.05fr) minmax(340px, 1fr); gap: 16px; padding: 16px 20px 24px; max-width: 1500px; margin: 0 auto; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; font-weight: 650; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h2 span.ref { text-transform: none; letter-spacing: 0; font-weight: 450; }
+#map svg { width: 100%; height: auto; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 5px; }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
+.stat { background: var(--soft); border-radius: 8px; padding: 6px 8px; }
+.stat b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 11px; color: var(--muted); }
+.loop { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; align-items: stretch; }
+.step { border: 1px solid var(--line); border-radius: 10px; padding: 8px; text-align: center; background: var(--soft); transition: all .25s; position: relative; }
+.step b { display: block; font-size: 13px; }
+.step span { font-size: 11px; color: var(--muted); }
+.step.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.step.learn.on { border-color: var(--learn); background: var(--learn-bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--learn) 25%, transparent); }
+.step.patch.on { border-color: var(--patch); background: var(--patch-bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--patch) 25%, transparent); }
+.step.bad.on { border-color: var(--abort); background: var(--abort-bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--abort) 25%, transparent); }
+.now { margin-top: 10px; font-size: 13px; min-height: 2.9em; }
+.now code { font-family: var(--mono); font-size: 12.5px; }
+.intention { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { font-family: var(--mono); font-size: 12px; padding: 3px 8px; border-radius: 6px; background: var(--soft); border: 1px solid var(--line); white-space: nowrap; }
+.chip.exec { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.chip.ins { background: var(--patch-bg); border-color: var(--patch); color: var(--patch); }
+.chip.learned { background: var(--learn-bg); border-color: var(--learn); color: var(--learn); }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 11.5px; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+td { padding: 4px 6px; font-family: var(--mono); font-size: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.SUCCESS td { background: var(--success-bg); }
+tr.FAILURE td { background: var(--failure-bg); }
+tr.ABORT td { background: var(--abort-bg); }
+td.o { font-family: inherit; font-weight: 600; }
+tr.SUCCESS td.o { color: var(--success); } tr.FAILURE td.o { color: var(--failure); } tr.ABORT td.o { color: var(--abort); }
+.scroll { max-height: 250px; overflow: auto; border-radius: 8px; }
+.empty { color: var(--muted); font-size: 13px; }
+.scores { display: flex; flex-direction: column; gap: 6px; }
+.bar { display: grid; grid-template-columns: 170px 1fr 30px; gap: 8px; align-items: center; font-family: var(--mono); font-size: 12px; }
+.bar div { height: 12px; border-radius: 6px; background: var(--edge); }
+.bar.win div { background: var(--learn); }
+.bar.win { color: var(--learn); font-weight: 600; }
+.desc { font-family: var(--mono); font-size: 12px; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--soft); }
+.desc .old { text-decoration: line-through; color: var(--muted); }
+.desc .new { color: var(--learn); font-weight: 600; }
+.plan { margin-bottom: 10px; }
+.plan .trig { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.caps { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 12px; }
+.cap { font-family: var(--mono); font-size: 11.5px; display: flex; justify-content: space-between; gap: 6px; padding: 2px 0; border-bottom: 1px dashed var(--line); }
+.cap.learned { color: var(--learn); font-weight: 600; }
+.badge { font-family: inherit; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; letter-spacing: .03em; }
+.badge.SUSPECT { background: var(--failure-bg); color: var(--failure); }
+.badge.DEPRECATED { background: var(--abort-bg); color: var(--abort); }
+.badge.LEARNED { background: var(--learn-bg); color: var(--learn); }
+.faults { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fchip { font-family: var(--mono); font-size: 12px; padding: 3px 4px 3px 9px; border-radius: 14px; background: var(--abort-bg); color: var(--abort); border: 1px solid var(--abort); display: inline-flex; gap: 6px; align-items: center; }
+.fchip button { border: none; background: transparent; color: inherit; padding: 0 6px; font-size: 14px; line-height: 1; }
+#feed { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow: auto; font-size: 13px; }
+#feed li { padding: 4px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 34px 1fr; gap: 6px; }
+#feed li span.n { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+#feed li.fail { color: var(--failure); } #feed li.abort { color: var(--abort); } #feed li.learn { color: var(--learn); } #feed li.patch { color: var(--patch); }
+#feed code, .now code { background: var(--soft); padding: 0 4px; border-radius: 4px; }
+details summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+pre { font-family: var(--mono); font-size: 11.5px; background: var(--soft); padding: 10px; border-radius: 8px; overflow: auto; max-height: 300px; }
+.clock { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px; } .loop { grid-template-columns: repeat(5, minmax(0,1fr)); } .bar { grid-template-columns: 120px 1fr 26px; } .stats { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Adaptable BDI reasoning <small>live Gwendolen agent</small></h1>
+  <div class="controls">
+    <select id="scenario" aria-label="Scenario">
+      <option value="patrol">Waypoint patrol (§7.3.1)</option>
+      <option value="inspection">Hallway inspection (§5.3, §7.2.1)</option>
+    </select>
+    <select id="preset" aria-label="Fault"></select>
+    <label class="inline">threshold <select id="threshold"><option>1</option><option>2</option><option>3</option></select></label>
+    <label class="inline" id="loopwrap"><input type="checkbox" id="loop" checked> repeat</label>
+    <button class="primary" id="run">Run</button>
+    <button id="stop" disabled>Stop</button>
+    <label class="inline">speed <input type="range" id="speed" min="0" max="100" value="45"></label>
+  </div>
+  <div class="conn"><span class="dot" id="dot"></span><span id="connText">connecting…</span></div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card" id="map">
+      <h2>Environment <span class="ref" id="clock"></span></h2>
+      <svg id="svg" viewBox="0 0 400 300" role="img" aria-label="Map of the environment"></svg>
+      <div class="legend">
+        <span><i style="border-color:var(--route)"></i>planned route</span>
+        <span><i style="border-color:var(--fault);border-top-style:dashed"></i>environment fault (hidden from agent)</span>
+        <span><i style="border-color:var(--learn)"></i>learned description</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="sActions">0</b><span>actions</span></div>
+        <div class="stat"><b id="sFail">0</b><span>failures</span></div>
+        <div class="stat"><b id="sAbort">0</b><span>aborts</span></div>
+        <div class="stat"><b id="sLearn">0</b><span>learned</span></div>
+        <div class="stat"><b id="sPatch">0</b><span>patches</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Break an action <span class="ref">changes the environment, not the agent</span></h2>
+      <div class="controls">
+        <select id="fAction" aria-label="Action"></select>
+        <span class="clock">now leads to</span>
+        <select id="fTo" aria-label="Destination"></select>
+        <button id="fBreak" disabled>Break</button>
+      </div>
+      <div class="faults" id="faults" style="margin-top:10px"></div>
+    </section>
+
+    <section class="card">
+      <h2>Adaptation loop <span class="ref">Figures 4.2 and 4.3</span></h2>
+      <div class="loop">
+        <div class="step" id="stAct"><b>Act</b><span>Stage D</span></div>
+        <div class="step" id="stLog"><b>Log outcome</b><span>§5.1</span></div>
+        <div class="step bad" id="stDetect"><b>Detect</b><span>deprecated?</span></div>
+        <div class="step learn" id="stLearn"><b>Learn</b><span>Stage D1</span></div>
+        <div class="step patch" id="stPatch"><b>Patch plans</b><span>Stage D2</span></div>
+      </div>
+      <div class="now" id="now"><span class="empty">Choose a scenario and press Run.</span></div>
+      <div class="intention" id="intention"></div>
+    </section>
+
+    <section class="card">
+      <h2>What the agent is doing</h2>
+      <ul id="feed"></ul>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card">
+      <h2>Action log <span class="ref">Figures 5.1–5.4</span></h2>
+      <div class="scroll"><table><thead><tr><th>Capability</th><th>Change in beliefs</th><th>Outcome</th></tr></thead><tbody id="log"></tbody></table></div>
+    </section>
+
+    <section class="card">
+      <h2>Learning <span class="ref">Algorithm 2, Figure 6.3</span></h2>
+      <div id="learn"><span class="empty">When an action reaches its failure threshold, its failures are weighted by recency and frequency, and the highest-scoring change in beliefs becomes its new description.</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Plan library <span class="ref">patched deeds highlighted</span></h2>
+      <div id="plans"></div>
+    </section>
+
+    <section class="card">
+      <h2>Capability library</h2>
+      <div class="caps" id="caps"></div>
+      <details style="margin-top:10px"><summary>Agent program</summary><pre id="program"></pre></details>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const PRESETS = {
+  patrol: [
+    ["Equation 7.3: move(b,d) leads to c", {"move(b,d)": "c"}],
+    ["No faults", {}],
+    ["move(a,b) leads to d", {"move(a,b)": "d"}],
+    ["move(b,d) and move(c,b) both fail", {"move(b,d)": "c", "move(c,b)": "a"}],
+  ],
+  inspection: [
+    ["No faults", {}],
+    ["move(room4,hallway) leads to room 1 (patched)", {"move(room4,hallway)": "room1"}],
+    ["Stuck on the way to the fire exit (timeout)", {"move(hallway,picture_location)": "never"}],
+    ["Fire exit route leads to room 1 (no patch)", {"move(hallway,picture_location)": "room1"}],
+  ],
+};
+
+let ws, init = null, nodes = {}, original = {}, faults = {}, learnedEdges = {}, robotAt = null, feedN = 0, running = false;
+let stats = {actions: 0, fail: 0, abort: 0, learn: 0, patch: 0};
+
+function fillPresets() {
+  const s = $("scenario").value;
+  $("preset").innerHTML = PRESETS[s].map((p, i) => `<option value="${i}">${p[0]}</option>`).join("");
+  $("loopwrap").style.display = s === "patrol" ? "" : "none";
+}
+$("scenario").onchange = fillPresets;
+fillPresets();
+
+function speeds() {
+  const v = +$("speed").value / 100;            // 0 slow .. 1 fast
+  return {stepMs: Math.round(1600 - 1450 * v), tickMs: Math.round(800 - 720 * v)};
+}
+$("speed").oninput = () => send({cmd: "speed", ...speeds()});
+
+function send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+
+$("run").onclick = () => {
+  const s = $("scenario").value;
+  send({cmd: "speed", ...speeds()});
+  send({cmd: "run", scenario: s, threshold: +$("threshold").value, loop: $("loop").checked, faults: PRESETS[s][+$("preset").value][1]});
+};
+$("stop").onclick = () => send({cmd: "stop"});
+$("fBreak").onclick = () => {
+  const [from, to] = parseMove($("fAction").value);
+  send({cmd: "fault", from, to, actual: $("fTo").value});
+};
+
+function connect() {
+  ws = new WebSocket(`ws://${location.host}/`);
+  ws.onopen = () => { $("dot").classList.add("on"); $("connText").textContent = "connected to MCAPL"; };
+  ws.onclose = () => { $("dot").classList.remove("on"); $("connText").textContent = "disconnected, retrying…"; setTimeout(connect, 1500); };
+  ws.onmessage = e => handle(JSON.parse(e.data));
+}
+connect();
+
+// ---------- helpers
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const code = s => `<code>${esc(s)}</code>`;
+const prettyGoal = s => String(s).replace(/!_[ap]/g, "!").replace(/^x!/, "-!");
+function parseMove(a) { const m = /^move\(([^,]+),([^)]+)\)$/.exec(a.replace(/\s/g, "")); return m ? [m[1], m[2]] : [null, null]; }
+function label(id) { return nodes[id] ? nodes[id].label : id; }
+function setRunning(r) { running = r; $("stop").disabled = !r; $("fBreak").disabled = !r; }
+function steps(on, cls) {
+  ["stAct", "stLog", "stDetect", "stLearn", "stPatch"].forEach(id => $(id).classList.toggle("on", id === on));
+}
+function say(html, cls) {
+  const li = document.createElement("li");
+  li.className = cls || "";
+  li.innerHTML = `<span class="n">${++feedN}</span><span>${html}</span>`;
+  $("feed").appendChild(li);
+  while ($("feed").children.length > 200) $("feed").firstChild.remove();
+  $("feed").scrollTop = $("feed").scrollHeight;
+}
+function bump(k) { stats[k]++; $({actions: "sActions", fail: "sFail", abort: "sAbort", learn: "sLearn", patch: "sPatch"}[k]).textContent = stats[k]; }
+
+// ---------- map
+const W = 400, H = 300, PAD = 56;
+function project(n, xs, ys) {
+  const [x0, x1] = xs, [y0, y1] = ys;
+  return {x: PAD + (x1 > x0 ? (n.x - x0) / (x1 - x0) : .5) * (W - 2 * PAD), y: PAD + (y1 > y0 ? (n.y - y0) / (y1 - y0) : .5) * (H - 2 * PAD)};
+}
+function drawMap() {
+  if (!init) return;
+  const m = init.map, xs = m.nodes.map(n => n.x), ys = m.nodes.map(n => n.y);
+  nodes = {};
+  m.nodes.forEach(n => nodes[n.id] = {...n, ...project(n, [Math.min(...xs), Math.max(...xs)], [Math.min(...ys), Math.max(...ys)])});
+  const route = routeEdges();
+  let s = `<defs>
+    <marker id="arF" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--fault)"/></marker>
+    <marker id="arL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--learn)"/></marker>
+    <marker id="arR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--route)"/></marker></defs>`;
+  m.edges.forEach(([a, b]) => { const A = nodes[a], B = nodes[b]; s += `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="var(--edge)" stroke-width="2"/>`; });
+  route.forEach(([a, b], i) => s += arrow(a, b, "var(--route)", "arR", 10, "", .55));
+  Object.entries(faults).forEach(([act, to]) => { const [a, b] = parseMove(act); if (nodes[a]) s += faultArrow(a, b, to); });
+  Object.entries(learnedEdges).forEach(([act, to]) => { const [a] = parseMove(act); if (nodes[a] && nodes[to] && a !== to) s += `<g><title>learned: ${esc(act)} leads to ${esc(label(to))}</title>${arrow(a, to, "var(--learn)", "arL", -22, "")}</g>`; });
+  m.nodes.forEach(n => { const N = nodes[n.id]; s += `<g><circle cx="${N.x}" cy="${N.y}" r="20" fill="var(--node)" stroke="var(--ink)" stroke-width="1.5"/><text x="${N.x}" y="${N.y + (m.kind === "hallway" ? 36 : 5)}" text-anchor="middle" font-size="${m.kind === "hallway" ? 12 : 15}" font-weight="600" fill="var(--ink)">${esc(n.label)}</text></g>`; });
+  s += `<g id="robot" style="transition: transform .6s ease-in-out"><g transform="translate(17,-17)"><circle r="10" fill="var(--robot)" stroke="var(--panel)" stroke-width="2.5"/><circle r="3.5" fill="var(--panel)"/></g></g>`;
+  $("svg").innerHTML = s;
+  if (robotAt) placeRobot(robotAt, 0);
+}
+function offsetLine(A, B, off) {
+  const dx = B.x - A.x, dy = B.y - A.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, r = 24;
+  return {x1: A.x + dx / L * r + nx * off, y1: A.y + dy / L * r + ny * off, x2: B.x - dx / L * r + nx * off, y2: B.y - dy / L * r + ny * off, mx: (A.x + B.x) / 2 + nx * (off * 1.8), my: (A.y + B.y) / 2 + ny * (off * 1.8)};
+}
+function arrow(a, b, color, marker, off, text, opacity) {
+  const L = offsetLine(nodes[a], nodes[b], off);
+  return `<path d="M${L.x1},${L.y1} Q${L.mx},${L.my} ${L.x2},${L.y2}" fill="none" stroke="${color}" stroke-width="2.5" marker-end="url(#${marker})" opacity="${opacity || 1}"/>` +
+    (text ? `<text x="${L.mx}" y="${L.my}" text-anchor="middle" font-size="10.5" font-family="var(--mono)" fill="${color}">${esc(text)}</text>` : "");
+}
+function faultArrow(a, b, to) {
+  if (to === "never" || !nodes[to]) {
+    const A = nodes[a], B = nodes[b], mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+    return `<line x1="${A.x}" y1="${A.y}" x2="${mx}" y2="${my}" stroke="var(--fault)" stroke-width="2.5" stroke-dasharray="6 4"/><text x="${mx}" y="${my - 10}" text-anchor="middle" font-size="16" fill="var(--fault)">✕</text>`;
+  }
+  return `<g><title>fault: move(${esc(a)},${esc(b)}) leads to ${esc(label(to))}</title>` + arrow(a, to, "var(--fault)", "arF", 22, "").replace('stroke-width="2.5"', 'stroke-width="2.5" stroke-dasharray="6 4"') + `</g>`;
+}
+function routeEdges() {
+  if (!init) return [];
+  const route = (init.state.plans.find(p => /route/.test(p.trigger)) || {body: []}).body;
+  return route.map(parseMove).filter(([a, b]) => a && nodes[a] && nodes[b]);
+}
+function placeRobot(id, ms, frac) {
+  const r = document.getElementById("robot");
+  if (!r) return;
+  let x, y;
+  if (Array.isArray(id)) { const A = nodes[id[0]], B = nodes[id[1]]; x = A.x + (B.x - A.x) * frac; y = A.y + (B.y - A.y) * frac; }
+  else if (nodes[id]) { x = nodes[id].x; y = nodes[id].y; robotAt = id; }
+  else return;
+  r.style.transition = `transform ${ms}ms ease-in-out`;
+  r.style.transform = `translate(${x}px, ${y}px)`;
+}
+
+// ---------- panels
+function renderState(state) {
+  init.state = state;
+  // plans: highlight deeds not in the original body
+  $("plans").innerHTML = state.plans.map(p => {
+    p = {...p, body: p.body.map(prettyGoal)};
+    const orig = (original[p.trigger] || []).map(prettyGoal);
+    const pool = orig.slice();
+    const chips = p.body.map(d => {
+      const i = pool.indexOf(d);
+      if (i >= 0) { pool.splice(i, 1); return `<span class="chip">${esc(d)}</span>`; }
+      return `<span class="chip ins" title="inserted by plan reconfiguration">${esc(d)}</span>`;
+    }).join("");
+    return `<div class="plan"><div class="trig">${esc(prettyGoal(p.trigger))} ←</div><div class="intention">${chips || '<span class="empty">empty</span>'}</div></div>`;
+  }).join("");
+  $("caps").innerHTML = state.capabilities.map(c => {
+    const badge = c.learned ? `<span class="badge LEARNED">LEARNED</span>` : (c.status && c.status !== "ACTIVE" ? `<span class="badge ${c.status}">${c.status}</span>` : "");
+    return `<div class="cap ${c.learned ? "learned" : ""}" title="${esc(c.text)}"><span>${esc(c.text.replace(/ \[.*\]$/, ""))}</span>${badge}</div>`;
+  }).join("");
+  learnedEdges = {};
+  state.capabilities.filter(c => c.learned).forEach(c => {
+    const m = /\{([^}]*)\}\s*$/.exec(c.text.replace(/ \[.*\]$/, ""));
+    const to = m && /(?:^|&\s*)at\(([^)]+)\)/.exec(m[1]);
+    learnedEdges[c.action] = to ? to[1] : parseMove(c.action)[0];
+  });
+  // break-an-action menu
+  const acts = state.capabilities.map(c => c.action).filter(a => /^move\(/.test(a));
+  const keep = $("fAction").value;
+  $("fAction").innerHTML = [...new Set(acts)].sort().map(a => `<option ${a === keep ? "selected" : ""}>${esc(a)}</option>`).join("");
+  const dests = init.map.nodes.map(n => n.id).concat(init.scenario === "inspection" ? ["never"] : []);
+  $("fTo").innerHTML = dests.map(d => `<option value="${d}">${d === "never" ? "never arrives" : esc(label(d))}</option>`).join("");
+}
+function renderFaults() {
+  const es = Object.entries(faults);
+  $("faults").innerHTML = es.length ? es.map(([a, to]) => {
+    const [f, t] = parseMove(a);
+    return `<span class="fchip">${esc(a)} → ${esc(to)}<button title="Fix this action" data-f="${esc(f)}" data-t="${esc(t)}">×</button></span>`;
+  }).join("") : `<span class="empty">All actions behave as described.</span>`;
+  $("faults").querySelectorAll("button").forEach(b => b.onclick = () => send({cmd: "fault", from: b.dataset.f, to: b.dataset.t, actual: ""}));
+}
+function logRow(e) {
+  const delta = e.deleted.map(x => "-" + x).concat(e.added.map(x => "+" + x)).join(", ") || "∅";
+  const tr = document.createElement("tr");
+  tr.className = e.outcome;
+  tr.innerHTML = `<td>${esc(e.action)}</td><td>${esc(delta)}</td><td class="o">${e.outcome[0] + e.outcome.slice(1).toLowerCase()}</td>`;
+  $("log").appendChild(tr);
+  while ($("log").children.length > 60) $("log").firstChild.remove();
+  tr.scrollIntoView({block: "nearest"});
+}
+
+// ---------- events
+let lastDescription = {};
+function handle(m) {
+  switch (m.type) {
+  case "init":
+    init = m; faults = {...m.faults}; original = {}; learnedEdges = {}; robotAt = null; feedN = 0; lastDescription = {};
+    stats = {actions: 0, fail: 0, abort: 0, learn: 0, patch: 0}; ["sActions", "sFail", "sAbort", "sLearn", "sPatch"].forEach(id => $(id).textContent = 0);
+    m.state.plans.forEach(p => original[p.trigger] = p.body.slice());
+    m.state.capabilities.forEach(c => lastDescription[c.action] = c.text);
+    $("log").innerHTML = ""; $("feed").innerHTML = ""; $("intention").innerHTML = ""; $("clock").textContent = "";
+    $("learn").innerHTML = `<span class="empty">No action has reached its failure threshold (${m.threshold}) yet.</span>`;
+    $("program").textContent = m.program;
+    if ($("scenario").value !== m.scenario) { $("scenario").value = m.scenario; fillPresets(); }
+    drawMap(); renderState(m.state); renderFaults();
+    const start = m.scenario === "patrol" ? "a" : "room4";
+    placeRobot(start, 0);
+    setRunning(true); steps(null);
+    $("now").innerHTML = `Running the ${m.scenario === "patrol" ? "waypoint patrol" : "hallway inspection"} with failure threshold ${m.threshold}.`;
+    say(`Started the ${esc(m.scenario)} scenario. Environment faults: ${Object.keys(faults).length ? Object.entries(faults).map(([a, t]) => code(a + " → " + t)).join(", ") : "none"}.`);
+    break;
+  case "started": {
+    bump("actions"); steps("stAct");
+    $("now").innerHTML = `Executing ${code(m.action)}. Its intention is suspended until a terminating condition is believed.<br><span class="clock">${esc(m.description)}</span>`;
+    let marked = false;
+    $("intention").innerHTML = m.intention.filter(d => d !== "null").slice(0, 14).map(d => {
+      const ex = !marked && d === m.action; if (ex) marked = true;
+      return `<span class="chip ${ex ? "exec" : ""}">${esc(prettyGoal(d))}</span>`;
+    }).join("");
+    break; }
+  case "move": {
+    const ms = Math.max(200, speeds().stepMs * .8);
+    placeRobot(m.actual, ms);
+    if (m.actual !== m.intended && m.from !== m.actual) say(`${code(m.action)} took the rover to <b>${esc(label(m.actual))}</b>, not ${esc(label(m.intended))}.`, "fail");
+    else if (m.from === m.actual && m.from !== m.intended) say(`${code(m.action)} had no effect: the rover was at ${esc(label(m.from))}.`, "fail");
+    break; }
+  case "depart": {
+    const travel = Math.max(1, m.arrival - m.time) * speeds().tickMs;
+    if (m.actual === "never") placeRobot([m.from, m.intended], travel, .5);
+    else placeRobot(m.actual, travel);
+    say(`${code(m.action)}: leaving ${esc(label(m.from))} (t=${m.time}).`);
+    break; }
+  case "tick":
+    $("clock").textContent = `t = ${m.time}` + (m.moving ? ` · ${m.moving} in progress` : "");
+    if (m.arrived && m.at) placeRobot(m.at, 300);
+    break;
+  case "envabort":
+    placeRobot(m.at, 500);
+    say(`The environment stopped ${code(m.action)} and the robot returned to ${esc(label(m.at))}.`, "abort");
+    break;
+  case "picture": say(`Photographed the fire exit.`); break;
+  case "print": say(`Agent printed ${code(m.text)}.`); break;
+  case "outcome": {
+    steps("stLog"); logRow(m);
+    const delta = m.deleted.map(x => "-" + x).concat(m.added.map(x => "+" + x)).join(", ") || "no change";
+    if (m.outcome === "SUCCESS") { $("now").innerHTML = `${code(m.action)} succeeded: ${code(delta)}.`; }
+    else if (m.outcome === "FAILURE") {
+      bump("fail"); steps("stDetect");
+      $("now").innerHTML = `${code(m.action)} <b style="color:var(--failure)">failed</b>: observed ${code(delta)}. Failures since last learned: ${m.failures} of ${init.threshold}.`;
+      say(`${code(m.action)} failed (${esc(delta)}); ${m.failures} of ${init.threshold} failure(s) toward deprecation.`, "fail");
+      if (m.failures < init.threshold) say(`Below the threshold, so the action will be retried (Rule 5.5).`);
+    } else {
+      bump("abort"); steps("stDetect");
+      $("now").innerHTML = `${code(m.action)} <b style="color:var(--abort)">aborted</b>: it overran its duration. It is not retried and the goal fails (Rule 5.7).`;
+      say(`${code(m.action)} overran its duration and was aborted; the goal fails.`, "abort");
+    }
+    if (m.outcome !== "SUCCESS") renderStateStatus(m.action, m.failures);
+    if (robotAt && m.beliefs) { const at = m.beliefs.map(b => /^at\((.+)\)$/.exec(b)).find(Boolean); if (at && init.scenario === "patrol") placeRobot(at[1], 300); }
+    break; }
+  case "deprecated":
+    steps("stDetect");
+    $("now").innerHTML = `${code(m.action)} is <b style="color:var(--abort)">deprecated</b> after ${m.failures} failure(s). Moving to Stage D1.`;
+    say(`${code(m.action)} reached its failure threshold and is deprecated.`, "abort");
+    break;
+  case "learned": {
+    bump("learn"); steps("stLearn");
+    const entries = Object.entries(m.scores).sort((a, b) => b[1] - a[1]);
+    const max = Math.max(...entries.map(e => e[1]), 1);
+    const fmt = k => k.split(",").filter(Boolean).join(", ") || "∅  (no change)";
+    $("learn").innerHTML = `<div class="clock" style="margin-bottom:8px">Candidate post-conditions for ${code(m.action)}</div><div class="scores">` +
+      entries.map(([k, v], i) => `<div class="bar ${i === 0 ? "win" : ""}"><span>{${esc(fmt(k))}}</span><div style="width:${100 * v / max}%"></div><b>${v}</b></div>`).join("") +
+      `</div><div class="desc"><div class="old">${esc(lastDescription[m.action] || "")}</div><div class="new">${esc(m.description.replace(/ \[.*\]$/, ""))}</div></div>`;
+    $("now").innerHTML = `Learned a new description of ${code(m.action)}: ${code(m.description.replace(/ \[.*\]$/, ""))}.`;
+    say(`Learned ${code(m.description.replace(/ \[.*\]$/, ""))} (Algorithm 2).`, "learn");
+    lastDescription[m.action] = m.description;
+    renderState(m.state); drawMap();
+    break; }
+  case "reconfigured":
+    steps("stPatch");
+    if (m.patch) {
+      bump("patch");
+      $("now").innerHTML = `Plan reconfiguration found the patch ${code(m.patch.join(", "))} for ${code(m.action)}; ${m.changed} plan(s) updated.`;
+      say(`Patched ${m.changed} plan(s): ${code(m.action)} → ${code(m.patch.join(", "))}.`, "patch");
+    } else {
+      $("now").innerHTML = `No sequence of actions achieves what ${code(m.action)} was meant to do, so the plans are unchanged.`;
+      say(`No patch exists for ${code(m.action)}; plans unchanged.`, "abort");
+    }
+    renderState(m.state); drawMap();
+    break;
+  case "repaired":
+    if (m.repair) say(`The current intention continues with ${code(m.repair.join(", ") || "nothing")} instead of ${code(m.action)}.`, "patch");
+    else say(`The current intention cannot achieve what ${code(m.action)} was meant to do, so its goal fails.`, "abort");
+    break;
+  case "faults":
+    faults = m.faults; renderFaults(); drawMap();
+    say(`Environment changed: ${Object.keys(faults).length ? Object.entries(faults).map(([a, t]) => code(a + " → " + t)).join(", ") : "all actions work"}. The agent has not been told.`);
+    break;
+  case "finished":
+    setRunning(false); steps(null);
+    if (m.state) renderState(m.state);
+    $("now").innerHTML = `Finished.`; say(`The agent has nothing left to do.`);
+    break;
+  case "stopped": setRunning(false); steps(null); say(`Stopped.`); break;
+  case "error": say(`Error: ${esc(m.message)}`, "abort"); setRunning(false); break;
+  }
+}
+function renderStateStatus(action, failures) {
+  // keep the capability badges current between full snapshots
+  if (!init) return;
+  const c = init.state.capabilities.find(c => c.action === action && !c.learned);
+  if (c) { c.failures = failures; c.status = failures >= (c.threshold || init.threshold) ? "DEPRECATED" : (failures > 0 ? "SUSPECT" : "ACTIVE"); renderState(init.state); }
+}
+renderFaults();
+})();
+</script>
+</body>
+</html>

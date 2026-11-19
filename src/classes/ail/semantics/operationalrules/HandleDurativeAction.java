@@ -27,6 +27,7 @@ import java.util.List;
 
 import ail.semantics.AILAgent;
 import ail.semantics.adaptive.ActionExecution;
+import ail.semantics.adaptive.AdaptiveListener;
 import ail.semantics.adaptive.AdaptiveReasoning;
 import ail.semantics.adaptive.AdaptiveState;
 import ail.syntax.Action;
@@ -135,6 +136,9 @@ public class HandleDurativeAction extends HandleTopDeed {
 			a.trace(new ActionEvent(act, i_id));
 		}
 		a.getAdaptiveState().startExecution(i.getID(), e);
+		for (AdaptiveListener l: a.getAdaptiveState().getListeners()) {
+			l.actionStarted(a, act, description.instance);
+		}
 		i.suspend();
 		a.getReasoningCycle().setStopandCheck(true);
 	}
@@ -158,6 +162,9 @@ public class HandleDurativeAction extends HandleTopDeed {
 		if (AJPFLogger.ltInfo(AdaptiveReasoning.logname)) {
 			AJPFLogger.info(AdaptiveReasoning.logname, a.getAgName() + " action log: " + entry);
 		}
+		for (AdaptiveListener l: s.getListeners()) {
+			l.actionTerminated(a, entry);
+		}
 
 		Predicate action = e.getAction();
 		switch (o) {
@@ -179,6 +186,9 @@ public class HandleDurativeAction extends HandleTopDeed {
 			if (log.failureCount(action) >= threshold) {
 				AJPFLogger.info(AdaptiveReasoning.logname, a.getAgName() + ": " + action + " is deprecated after " + log.failureCount(action) + " failure(s)");
 				s.setPendingDeprecation(new AdaptiveState.Deprecation(i.getID(), action, e.getLibraryEntry(), e.getDescription()));
+				for (AdaptiveListener l: s.getListeners()) {
+					l.actionDeprecated(a, action, log.failureCount(action));
+				}
 			} else {
 				retry(a, e);
 			}

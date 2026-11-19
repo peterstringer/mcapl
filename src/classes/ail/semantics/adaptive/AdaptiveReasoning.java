@@ -179,7 +179,8 @@ public final class AdaptiveReasoning {
 
 	/**
 	 * How, if at all, an executing action has terminated.  Success is checked first, then abort
-	 * (an explicit abort condition or a timeout), then failure.  An action the environment reports
+	 * (an explicit abort condition, or a timeout while the environment is still executing the
+	 * action), then failure.  An action the environment reports
 	 * as no longer executing that has neither succeeded nor been aborted has failed.
 	 * @param a
 	 * @param e
@@ -190,10 +191,13 @@ public final class AdaptiveReasoning {
 		if (believes(a, d.getSuccess())) {
 			return ActionLogEntry.Outcome.SUCCESS;
 		}
-		if (believes(a, d.getAbort()) || timedOut(a, e)) {
+		boolean executing = a.getEnv().executing(a.getAgName(), e.getAction());
+		// Only an action that is still running can overrun its duration: one that has finished
+		// may just be waiting for the agent to process its effects.
+		if (believes(a, d.getAbort()) || (executing && timedOut(a, e))) {
 			return ActionLogEntry.Outcome.ABORT;
 		}
-		if (believes(a, d.getFailure()) || ! a.getEnv().executing(a.getAgName(), e.getAction())) {
+		if (believes(a, d.getFailure()) || ! executing) {
 			return ActionLogEntry.Outcome.FAILURE;
 		}
 		return null;

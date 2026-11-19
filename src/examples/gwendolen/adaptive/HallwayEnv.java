@@ -112,7 +112,9 @@ public class HallwayEnv extends DefaultEnvironment implements TimedEnvironment, 
 				String to = act.getTerm(1).toString();
 				moving = new Predicate(act);
 				origin = from;
-				destination = faults.containsKey(a) ? faults.get(a) : to;
+				synchronized (this) {
+					destination = faults.containsKey(a) ? faults.get(a) : to;
+				}
 				arrival = time + travel;
 				removePercept(at(location));
 				location = null;
@@ -193,6 +195,50 @@ public class HallwayEnv extends DefaultEnvironment implements TimedEnvironment, 
 
 	public int getPictures() {
 		return pictures;
+	}
+
+	/**
+	 * Make move(From, To) take the robot elsewhere, or with "never" leave it stuck in transit.
+	 */
+	public synchronized void setFault(String from, String to, String actual) {
+		faults.put("move(" + from + "," + to + ")", actual);
+	}
+
+	public synchronized void clearFault(String from, String to) {
+		faults.remove("move(" + from + "," + to + ")");
+	}
+
+	public synchronized TreeMap<String, String> getFaults() {
+		return new TreeMap<String, String>(faults);
+	}
+
+	/** Where the robot is, or null while it is moving. */
+	public String getLocation() {
+		return location;
+	}
+
+	/** The move in progress, or null. */
+	public Predicate getMove() {
+		return moving;
+	}
+
+	/** Where the move in progress started. */
+	public String getOrigin() {
+		return origin;
+	}
+
+	/** Where the move in progress will end, or "never". */
+	public String getDestination() {
+		return destination;
+	}
+
+	/** When the move in progress will arrive. */
+	public long getArrival() {
+		return arrival;
+	}
+
+	public int getTravel() {
+		return travel;
 	}
 
 	/*

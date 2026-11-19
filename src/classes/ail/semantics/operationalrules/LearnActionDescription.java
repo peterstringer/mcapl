@@ -27,6 +27,7 @@ import java.util.List;
 
 import ail.semantics.AILAgent;
 import ail.semantics.OSRule;
+import ail.semantics.adaptive.AdaptiveListener;
 import ail.semantics.adaptive.AdaptiveReasoning;
 import ail.semantics.adaptive.AdaptiveState;
 import ail.semantics.adaptive.PostconditionLearner;
@@ -89,6 +90,9 @@ public class LearnActionDescription implements OSRule {
 		log.resetFailures(d.getAction());
 		d.setLearned(learned);
 
+		for (AdaptiveListener l: a.getAdaptiveState().getListeners()) {
+			l.descriptionLearned(a, learned, PostconditionLearner.scores(failures));
+		}
 		AJPFLogger.info(AdaptiveReasoning.logname, a.getAgName() + " learned " + learned + " from " + failures.size() + " failure(s), scores " + PostconditionLearner.scores(failures));
 	}
 }
