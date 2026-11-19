@@ -36,6 +36,7 @@ import java.util.Set;
 
 import ail.mas.AILEnv;
 import ail.mas.MAS;
+import ail.semantics.adaptive.AdaptiveState;
 import ail.semantics.heuristics.SelectIntentionHeuristic;
 import ail.syntax.AILAnnotation;
 import ail.syntax.Action;
@@ -139,6 +140,12 @@ public class AILAgent implements MCAPLLanguageAgent, AgentMentalState {
 	 * THis is a map from strings to capability libraries.
 	 */
 	protected Map<String, CapabilityLibrary> clmap = new VerifyMap<String, CapabilityLibrary>();
+
+	/**
+	 * The action log, executing actions and plan patches used to detect deprecated actions, learn new
+	 * descriptions for them and reconfigure the agent's plans.
+	 */
+	protected AdaptiveState adaptive = new AdaptiveState();
 
 	/**
 	 * This is a map from strings to plan libraries. In general an agent only has
@@ -797,6 +804,15 @@ public class AILAgent implements MCAPLLanguageAgent, AgentMentalState {
 	 */
 	public CapabilityLibrary getCL() {
 		return clmap.get(getDefaultCBName());
+	}
+
+	/**
+	 * Get the state used to monitor and adapt the agent's actions.
+	 * 
+	 * @return
+	 */
+	public AdaptiveState getAdaptiveState() {
+		return adaptive;
 	}
 
 	/**
@@ -2334,5 +2350,8 @@ public class AILAgent implements MCAPLLanguageAgent, AgentMentalState {
 	 * @param c
 	 */
 	public void configure(AILConfig c) {
+		if (c.containsKey("ail.action_log.size")) {
+			adaptive.getActionLog().setSizeLimit(Integer.parseInt(c.getProperty("ail.action_log.size")));
+		}
 	}
 }

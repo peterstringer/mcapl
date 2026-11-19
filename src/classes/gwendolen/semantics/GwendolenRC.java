@@ -59,6 +59,11 @@ public class GwendolenRC implements ReasoningCycle {
 	private GwendolenRCStage StageD = new GwendolenRCStage(3, "StageD");
 	private GwendolenRCStage StageE = new GwendolenRCStage(4, "StageE");
 	private GwendolenRCStage StageF = new GwendolenRCStage(5, "StageF");
+	// Stages for adapting to deprecated actions (Stringer, Figure 4.3).  These are only
+	// entered when the agent has actions with durative descriptions in its capability library.
+	private GwendolenRCStage StageD1 = new GwendolenRCStage(6, "StageD1");
+	private GwendolenRCStage StageD2 = new GwendolenRCStage(7, "StageD2");
+	private GwendolenRCStage StageE2 = new GwendolenRCStage(8, "StageE2");
 	/**
 	 * Flag indicating whether this is a point where the properties of the 
 	 * multi-agent system should be checked.
@@ -143,6 +148,7 @@ public class GwendolenRC implements ReasoningCycle {
 		StageD.setRule(rulehwf);
 		StageD.setRule(rulehap);
 //		StageD.setRule(rulehac);
+		StageD.setRule(new HandleDurativeAction());
 		StageD.setRule(rule15);
 		StageD.setRule(rule15a);
 		StageD.setRule(ruleiup);
@@ -152,6 +158,11 @@ public class GwendolenRC implements ReasoningCycle {
 		
 		Perceive rule16 = new Perceive();
 		getStageE().setRule(rule16);
+		
+		/* Stage D1, D2 and E2 Rules */
+		StageD1.setRule(new LearnActionDescription());
+		StageD2.setRule(new ReconfigurePlans());
+		StageE2.setRule(new CheckExecutingActions());
 		
 		/* Stage F Rules */
 		
@@ -191,8 +202,22 @@ public class GwendolenRC implements ReasoningCycle {
 				setStopandCheck(true);
 			}
 			setStopandCheck(true);
+			if (ag.getAdaptiveState().hasPendingDeprecation()) {
+				currentstage = StageD1;
+			} else {
+				currentstage = StageE;
+			}
+		} else if (currentstage == StageD1) {
+			currentstage = StageD2;
+		} else if (currentstage == StageD2) {
 			currentstage = StageE;
 		} else if (currentstage == StageE) {
+			if (ag.getAdaptiveState().hasExecutingActions()) {
+				currentstage = StageE2;
+			} else {
+				currentstage = StageF;
+			}
+		} else if (currentstage == StageE2) {
 			currentstage = StageF;
 		} else if (currentstage == StageF) {
 			currentstage = StageA;
@@ -239,6 +264,18 @@ public class GwendolenRC implements ReasoningCycle {
 	}
 	public RCStage getStageF() {
 		return StageF;
+	}
+	
+	public RCStage getStageD1() {
+		return StageD1;
+	}
+	
+	public RCStage getStageD2() {
+		return StageD2;
+	}
+	
+	public RCStage getStageE2() {
+		return StageE2;
 	}
 
 	public void setCurrentStage(RCStage rcs) {

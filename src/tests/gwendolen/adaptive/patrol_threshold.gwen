@@ -1,0 +1,52 @@
+// ----------------------------------------------------------------------------
+// Copyright (C) 2026 Peter Stringer, Louise A. Dennis
+//
+// This file is part of the Gwendolen Interpreter.
+//
+// The Gwendolen Interpreter is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 3 of the License, or (at your option) any later version.
+//
+// The Gwendolen Interpreter is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public
+// License along with the Gwendolen Interpreter; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+//
+// To contact the authors:
+// http://www.csc.liv.ac.uk/~lad
+//
+//----------------------------------------------------------------------------
+
+// The patrol of /src/examples/gwendolen/adaptive/patrol.gwen with a failure threshold of 2:
+// a failed move is retried, after returning to where it started, before it is deprecated.
+
+GWENDOLEN
+
+:name: rover
+
+:Initial Beliefs:
+
+:Capabilities:
+{at(a)} move(a,b) {at(b), ~at(a)} [threshold 2]
+{at(b)} move(b,a) {at(a), ~at(b)} [threshold 2]
+{at(a)} move(a,c) {at(c), ~at(a)} [threshold 2]
+{at(c)} move(c,a) {at(a), ~at(c)} [threshold 2]
+{at(b)} move(b,d) {at(d), ~at(b)} [threshold 2]
+{at(d)} move(d,b) {at(b), ~at(d)} [threshold 2]
+{at(c)} move(c,d) {at(d), ~at(c)} [threshold 2]
+{at(d)} move(d,c) {at(c), ~at(d)} [threshold 2]
+{at(a)} move(a,d) {at(d), ~at(a)} [threshold 2]
+{at(d)} move(d,a) {at(a), ~at(d)} [threshold 2]
+{at(b)} move(b,c) {at(c), ~at(b)} [threshold 2]
+{at(c)} move(c,b) {at(b), ~at(c)} [threshold 2]
+
+:Initial Goals:
+route [perform]
+
+:Plans:
++!route [perform] : {B at(a)} <- move(a,b), move(b,d), move(d,c), move(c,b), move(b,a);

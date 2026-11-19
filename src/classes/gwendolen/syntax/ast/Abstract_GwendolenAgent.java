@@ -28,6 +28,7 @@ package gwendolen.syntax.ast;
 import ail.mas.MAS;
 import ail.syntax.ast.Abstract_Agent;
 import ail.syntax.ast.Abstract_Literal;
+import ail.syntax.ast.Abstract_Capability;
 import ail.syntax.ast.Abstract_Goal;
 import ail.syntax.ast.Abstract_Plan;
 import ail.syntax.ast.Abstract_Rule;
@@ -100,6 +101,12 @@ public class Abstract_GwendolenAgent extends Abstract_Agent {
 		    	for (Abstract_Goal g: goals) {
 		    		ag.addInitialGoal(g.toMCAPL());
 		    	}
+		    	// Subclasses that build their own JPF objects may not set the capabilities.
+		    	if (capabilities != null) {
+		    		for (Abstract_Capability c: capabilities) {
+		    			ag.addCapability(c.toMCAPL());
+		    		}
+		    	}
 		    	try { 
 		    		ag.initAg();
 		    	} catch (Exception e) {
@@ -116,6 +123,10 @@ public class Abstract_GwendolenAgent extends Abstract_Agent {
     	int gRef = env.newObjectArray("ail.syntax.ast.Abstract_Goal", goals.length);
       	int rRef = env.newObjectArray("ail.syntax.ast.Abstract_Rule", rules.length);
        	int pRef = env.newObjectArray("ail.syntax.ast.Abstract_Plan", plans.length);
+       	int cRef = env.newObjectArray("ail.syntax.ast.Abstract_Capability", capabilities.length);
+       	for (int i = 0; i < capabilities.length; i++) {
+       		env.setReferenceArrayElement(cRef, i, capabilities[i].newJPFObject(env));
+       	}
        	for (int i = 0; i < beliefs.length; i++) {
        		env.setReferenceArrayElement(bRef, i, beliefs[i].newJPFObject(env));
        	}
@@ -132,6 +143,7 @@ public class Abstract_GwendolenAgent extends Abstract_Agent {
       	env.setReferenceField(objref, "goals", gRef);
       	env.setReferenceField(objref, "rules", rRef);
       	env.setReferenceField(objref, "plans", pRef);
+      	env.setReferenceField(objref, "capabilities", cRef);
       	return objref;
    	
     }

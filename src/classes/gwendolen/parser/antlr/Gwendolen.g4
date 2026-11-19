@@ -37,7 +37,8 @@ gwendolenagent :  (GWENDOLEN?)
 	BELIEFS (bs=BELIEF_BLOCK)*
 	// RR_BLOCKS should be rulelists from LogicalFmlas grammar
 	(BELIEFRULES (RR_NEWLINE)* (rr=RR_BLOCK)* )?
-	(GOAL_IB | GOAL_RR) (gs=initial_goal)*
+	((CAP_IB | CAP_RR) (cb=CAP_BLOCK)*)?
+	(GOAL_IB | GOAL_RR | GOAL_C) (gs=initial_goal)*
 	PLANS (p=plan)+;
 	
 

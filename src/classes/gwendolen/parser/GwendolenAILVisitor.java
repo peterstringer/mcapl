@@ -12,6 +12,7 @@ import ail.parser.FOFVisitor;
 import ail.syntax.ast.Abstract_Action;
 import ail.syntax.ast.Abstract_BaseAILStructure;
 import ail.syntax.ast.Abstract_Deed;
+import ail.syntax.ast.Abstract_DurativeAction;
 import ail.syntax.ast.Abstract_Equation;
 import ail.syntax.ast.Abstract_Event;
 import ail.syntax.ast.Abstract_GBelief;
@@ -99,6 +100,16 @@ public class GwendolenAILVisitor extends GwendolenBaseVisitor<Object> {
 					}
 				}
 			} 
+			
+			if (ctx.cb != null) {
+				StringBuilder capblocks = new StringBuilder();
+				for (TerminalNode cb: ctx.CAP_BLOCK()) {
+					capblocks.append(cb.getText()).append("\n");
+				}
+				for (Abstract_DurativeAction c: GwendolenCapabilityParser.parse(capblocks.toString())) {
+					g.addCapability(c);
+				}
+			}
 			
 			List<GwendolenParser.Initial_goalContext> goals = ctx.initial_goal();
 			for (GwendolenParser.Initial_goalContext gctx: goals) {

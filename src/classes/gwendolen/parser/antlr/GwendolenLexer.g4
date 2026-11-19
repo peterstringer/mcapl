@@ -45,7 +45,7 @@ BELIEFS	:	':Initial Beliefs:' -> mode(INITIAL_BELIEFS);
 mode INITIAL_BELIEFS;
 BELIEFRULES : ':Reasoning Rules:' -> mode(REASONING_RULES); 
 GOAL_IB	:	':Initial Goals:' -> mode(GOALS);
-CAP_IB: 'Capabilities:' -> mode(CAPABILITIES);
+CAP_IB: ':Capabilities:' -> mode(CAPABILITIES);
 IB_COMMENT : '/*' .*? '*/' -> skip ;
 IB_LINE_COMMENT : '//' ~[\n]* -> skip ;
 IB_NEWLINE:'\r'? '\n' -> skip;
@@ -54,22 +54,19 @@ BELIEF_BLOCK: ('a'..'z'|'A'..'Z'|'0'..'9'|'_'|'('|')'|','|'.'|' '|'\t'|'\n'|'\r'
 
 mode REASONING_RULES;
 GOAL_RR	:	':Initial Goals:' -> mode(GOALS);
-CAP_RR: 'Capabilities:' -> mode(CAPABILITIES);
+CAP_RR: ':Capabilities:' -> mode(CAPABILITIES);
 RR_COMMENT : '/*' .*? '*/' -> skip ;
 RR_LINE_COMMENT : '//' ~[\n]* -> skip ;
 RR_NEWLINE:'\r'? '\n'   ;
 RR_WS  :   (' '|'\t') -> skip ;
 RR_BLOCK: ('a'..'z'|'A'..'Z'|'0'..'9'|'_'|'('|')'|','|':-'|' '|'\t'|'\n'|'\r'|';'|'~'|'['|']'|'|'|'!'|'<')+ ;
 
+// Capabilities are parsed from CAP_BLOCKs by the visitor, as beliefs and rules are.
 mode CAPABILITIES;
-GOAL_C: 'Initial Goals:' -> mode(GOALS);
+GOAL_C: ':Initial Goals:' -> mode(GOALS);
 CAP_COMMENT : '/*' .*? '*/' -> skip ;
 CAP_LINE_COMMENT : '//' ~[\n]* -> skip ;
-CAP_NEWLINE:'\r'? '\n'   ;
-CAP_WS  :   (' '|'\t') -> skip ;
-CAP_CURLYOPEN	: '{' {curly_nesting++;};
-CAP_CURLYCLOSE	: '}' {curly_nesting--;};
-CAP_BLOCK: ('a'..'z'|'A'..'Z'|'0'..'9'|'_'|'('|')'|','|':-'|' '|'\t'|'\n'|'\r'|';'|'~'|'['|']'|'|'|'!')+ ;
+CAP_BLOCK: ~[:/]+ ;
 
 mode GOALS;
 PLANS	:	':Plans:' -> mode(PLANS_MODE);

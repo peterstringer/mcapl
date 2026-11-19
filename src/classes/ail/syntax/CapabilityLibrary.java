@@ -90,6 +90,37 @@ public class CapabilityLibrary implements Iterable<Capability> {
 			capMap.put(pi, cl);
 		}
 	}
+
+	/**
+	 * Add a capability so that it is considered before any existing capabilities for the same action.
+	 * @param c
+	 */
+	public void addFirst(Capability c) {
+		PredicateIndicator pi = c.getCap().getPredicateIndicator();
+		if (! capMap.containsKey(pi)) {
+			capMap.put(pi, new ArrayList<Capability>());
+		}
+		capMap.get(pi).add(0, c);
+	}
+
+	/**
+	 * Remove a capability (the object itself, not one that unifies with it).
+	 * @param c
+	 * @return whether the capability was in the library.
+	 */
+	public boolean remove(Capability c) {
+		ArrayList<Capability> cl = capMap.get(c.getCap().getPredicateIndicator());
+		if (cl == null) {
+			return false;
+		}
+		for (int i = 0; i < cl.size(); i++) {
+			if (cl.get(i) == c) {
+				cl.remove(i);
+				return true;
+			}
+		}
+		return false;
+	}
 	
 	/**
 	 * Preliminary implementation for finding a capability in a library that can be exchanged for some other capability in the library

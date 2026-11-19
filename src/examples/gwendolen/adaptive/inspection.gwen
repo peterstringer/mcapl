@@ -1,0 +1,60 @@
+// ----------------------------------------------------------------------------
+// Copyright (C) 2026 Peter Stringer, Louise A. Dennis
+//
+// This file is part of the Gwendolen Interpreter.
+//
+// The Gwendolen Interpreter is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 3 of the License, or (at your option) any later version.
+//
+// The Gwendolen Interpreter is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public
+// License along with the Gwendolen Interpreter; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+//
+// To contact the authors:
+// http://www.csc.liv.ac.uk/~lad
+//
+//----------------------------------------------------------------------------
+
+// An inspection robot photographs the fire exit from the end of a hallway (Stringer,
+// Figures 7.4 to 7.6, and the example of Section 5.3).  Moves take time: the robot's
+// intention is suspended while it is moving and resumes when it arrives.  A move that
+// takes longer than its duration is aborted and the inspection fails.
+
+GWENDOLEN
+
+:name: inspector
+
+:Initial Beliefs:
+
+:Capabilities:
+{at(room1)} move(room1,room4) {at(room4), ~at(room1)} [duration 5]
+{at(room4)} move(room4,room1) {at(room1), ~at(room4)} [duration 5]
+{at(room2)} move(room2,room3) {at(room3), ~at(room2)} [duration 5]
+{at(room3)} move(room3,room2) {at(room2), ~at(room3)} [duration 5]
+{at(room1)} move(room1,hallway) {at(hallway), ~at(room1)} [duration 5]
+{at(room2)} move(room2,hallway) {at(hallway), ~at(room2)} [duration 5]
+{at(room3)} move(room3,hallway) {at(hallway), ~at(room3)} [duration 5]
+{at(room4)} move(room4,hallway) {at(hallway), ~at(room4)} [duration 5]
+{at(hallway)} move(hallway,room1) {at(room1), ~at(hallway)} [duration 5]
+{at(hallway)} move(hallway,room2) {at(room2), ~at(hallway)} [duration 5]
+{at(hallway)} move(hallway,room3) {at(room3), ~at(hallway)} [duration 5]
+{at(hallway)} move(hallway,room4) {at(room4), ~at(hallway)} [duration 5]
+{at(hallway)} move(hallway,picture_location) {at(picture_location), ~at(hallway)} [duration 5]
+{at(picture_location)} move(picture_location,hallway) {at(hallway), ~at(picture_location)} [duration 5]
+{at(picture_location)} take_picture {}
+
+:Initial Goals:
+route [perform]
+
+:Plans:
++!route [perform] : {B at(room4)} <- move(room4,hallway), move(hallway,picture_location), take_picture,
+                                      move(picture_location,hallway), move(hallway,room4), print(inspected);
+
+-!route [perform] : {True} <- print(inspection_failed);
